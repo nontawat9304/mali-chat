@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+__pycache__/
+venv/
+env/
+.env
+*.pyc
+
+# IDEs
+.vscode/
+.idea/
+
+# Build outputs
+/dist
+/build
+frontend/dist/
+backend/chroma_db/
+
+# System
+.DS_Store
+Thumbs.db
+
+# Project specific
+backend/training_data.json
