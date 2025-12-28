@@ -111,7 +111,8 @@ npm install
 
 1.  ไปที่โฟลเดอร์: `C:\Project\AInote\backend\models\`
     *   (ถ้าไม่มีโฟลเดอร์ `models` ให้สร้างขึ้นมาใหม่ใน `backend`)
-2.  นำไฟล์โมเดล **.gguf** ที่คุณมี (เช่น `ThaiLLM-8B-Instruct.Q8_0.gguf`) มาวางไว้ในนี้
+2.  **สำคัญ:** ไฟล์โมเดล `.gguf` **จะไม่ได้ติดมากับ Git** (เพราะไฟล์ใหญ่เกิน)
+    *   คุณต้อง **Copy ไฟล์ `ThaiLLM-8B-Instruct.Q8_0.gguf` จากเครื่องเก่า** ใส่ Flash Drive หรือ Google Drive มาวางไว้ที่โฟลเดอร์นี้เอง
 3.  **ตั้งค่า:** เปิดไฟล์ `backend/.env` (ใช้ Notepad แก้ได้) แล้วดูบรรทัดนี้:
     ```ini
     # เลือกโหมดทำงานเป็น local
