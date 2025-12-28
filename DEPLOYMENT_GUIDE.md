@@ -60,8 +60,33 @@ python -m venv venv
 # (Windows)
 venv\Scripts\activate
 
-# 4. ติดตั้ง Library ที่จำเป็น (ขั้นตอนนี้จะนานหน่อย เพราะลง AI Engine)
+# 4. ติดตั้ง Library (เลือกตามการ์ดจอที่มี)
+
+**👉 สำหรับเครื่องทั่วไป (CPU) หรือ Intel Graphics:**
+```bash
 pip install -r requirements.txt
+```
+
+**👉 สำหรับคนใช้การ์ดจอ NVIDIA (RTX/GTX) - **แนะนำให้ทำ! เร็วขึ้น 10 เท่า****
+ต้องลง **CUDA Toolkit 12** ก่อน (โหลดที่ Nvidia) แล้วพิมพ์คำสั่งนี้:
+```bash
+# ตั้งค่าให้ใช้ CUDA
+set CMAKE_ARGS=-DGGML_CUDA=on
+
+# บังคับลง llama-cpp-python ใหม่แบบเปิด GPU
+pip install llama-cpp-python --force-reinstall --no-cache-dir --upgrade
+
+# ลง Library อื่นๆ ต่อ
+pip install -r requirements.txt
+```
+
+**👉 สำหรับคนใช้ AMD (Vulkan Mode):**
+```bash
+# ตั้งค่าให้ใช้ Vulkan (ต้องลง Vulkan SDK ก่อน)
+set CMAKE_ARGS=-DGGML_VULKAN=1
+pip install llama-cpp-python --force-reinstall --no-cache-dir --upgrade
+pip install -r requirements.txt
+```
 ```
 
 > **หมายเหตุ:** ถ้าเจอ Error สีแดงๆ เกี่ยวกับ `llama-cpp-python` ให้เช็คว่าลง **Visual Studio Build Tools (C++)** ครบถ้วนแล้วหรือยัง
