@@ -5,27 +5,51 @@
     "status": "Success (File)"
   },
   {
-    "filename": "Chat เรยกเจาของวา พช.txt",
-    "original_title": "Chat: เรียกเจ้าของว่า พี่ช...",
-    "timestamp": "2025-12-26T22:37:46.624330",
-    "status": "Success (Text)"
+    "filename": "เรยกชอ.txt",
+    "original_title": "เรียกชื่อ",
+    "timestamp": "2025-12-27T16:14:30.515237",
+    "status": "Success (Text)",
+    "user_id": 1,
+    "scope": "Private"
   },
   {
-    "filename": "Chat พรงนมประชม 9 โมง.txt",
-    "original_title": "Chat: พรุ่งนี้มีประชุม 9 โมง...",
-    "timestamp": "2025-12-27T00:38:35.742872",
-    "status": "Success (Text)"
+    "filename": "Chat พรงนมประชม 9โมง.txt",
+    "original_title": "Chat: พรุ่งนี้มีประชุม 9โมง...",
+    "timestamp": "2025-12-28T13:00:24.771279",
+    "status": "Success (Text)",
+    "user_id": 1,
+    "scope": "Private"
   },
   {
-    "filename": "มประชม.txt",
-    "original_title": "มีประชุม",
-    "timestamp": "2025-12-27T01:09:08.087795",
-    "status": "Success (Text)"
+    "filename": "Chat นายทานชออะไร.txt",
+    "original_title": "Chat: นายท่านชื่ออะไร...",
+    "timestamp": "2025-12-28T13:21:45.140899",
+    "status": "Success (Text)",
+    "user_id": 1,
+    "scope": "Private"
   },
   {
-    "filename": "Chat ใหมหนอย พรงนเลอนประชม.txt",
-    "original_title": "Chat: ใหม่หน่อย พรุ่งนี้เลื่อนประชุม...",
-    "timestamp": "2025-12-27T01:19:00.174240",
-    "status": "Success (Text)"
+    "filename": "Chat พรงนมประชม 10 โมง.txt",
+    "original_title": "Chat: พรุ่งนี้มีประชุม 10 โมง...",
+    "timestamp": "2025-12-28T21:04:43.591150",
+    "status": "Success (Text)",
+    "user_id": 1,
+    "scope": "Private"
+  },
+  {
+    "filename": "Chat ชอพนล ตอไปใหเรยกแบบน.txt",
+    "original_title": "Chat: ชื่อพี่นล ต่อไปให้เรียกแบบนี้...",
+    "timestamp": "2025-12-28T21:07:53.519680",
+    "status": "Success (Text)",
+    "user_id": 2,
+    "scope": "Private"
+  },
+  {
+    "filename": "สงงาน.txt",
+    "original_title": "ส่งงาน",
+    "timestamp": "2025-12-28T21:37:15.372836",
+    "status": "Success (Text)",
+    "user_id": null,
+    "scope": "Global"
   }
 ]

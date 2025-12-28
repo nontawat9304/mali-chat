@@ -1,13 +1,15 @@
-import { Component, ElementRef, ViewChild, OnInit, NgZone } from '@angular/core';
+import { Component, ElementRef, ViewChild, OnInit, NgZone, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ChatService, ChatResponse } from '../../services/chat.service';
 import { AvatarComponent } from '../avatar/avatar.component';
+import { AuthService } from '../../services/auth.service';
 
 interface Message {
   role: 'user' | 'ai';
   text: string;
+  model?: string; // Add model property
 }
 
 @Component({
@@ -18,15 +20,20 @@ interface Message {
     <div class="chat-container">
       <!-- Background watermark provided by CSS -->
       
+      <!-- Chat Header -->
+      <div class="chat-header">
+         <div class="header-info">
+            <h2>Mali-chan</h2>
+            <span class="status-badge" [class.online]="true">Online</span>
+         </div>
+      </div>
+
       <div class="messages-area" #scrollContainer>
         <div *ngFor="let msg of messages" class="message" [ngClass]="msg.role">
           <!-- AI Avatar Icon -->
           <img *ngIf="msg.role === 'ai'" src="/chibi_idle.png" class="profile-icon ai-icon" alt="AI">
           
           <div class="bubble">{{ msg.text }}</div>
-
-          <!-- User Avatar Icon -->
-          <div *ngIf="msg.role === 'user'" class="profile-icon user-icon">👤</div>
         </div>
         
         <div *ngIf="isLoading" class="message ai">
@@ -37,6 +44,7 @@ interface Message {
         </div>
       </div>
 
+      <!-- Input Area -->
       <div class="input-area">
         <div class="model-badge" [ngClass]="currentModel.includes('Cloud') ? 'cloud' : 'local'" title="Current Intelligence Source">
            {{ currentModel }}
@@ -46,11 +54,11 @@ interface Message {
           🗑️
         </button>
 
-        <button (click)="openAdminGuide()" class="mic-btn settings-btn" title="Admin Manual / คู่มือผู้ดูแล">
+        <button *ngIf="isAdmin" (click)="openAdminGuide()" class="mic-btn settings-btn" title="Admin Manual / คู่มือผู้ดูแล">
            🛠️
         </button>
 
-        <button (click)="openSettings()" class="mic-btn settings-btn" title="Settings / Change Server">
+        <button *ngIf="isAdmin" (click)="openSettings()" class="mic-btn settings-btn" title="Settings / Change Server">
           ⚙️
         </button>
         <button (click)="toggleMute()" class="mic-btn" [class.muted]="isMuted" [title]="isMuted ? 'Unmute' : 'Mute Voice'">
@@ -59,7 +67,7 @@ interface Message {
         <button (click)="toggleRecording()" [class.recording]="isRecording" class="mic-btn" [title]="isRecording ? 'Stop Recording' : 'Start Recording'">
           {{ isRecording ? '🟥' : '🎤' }}
         </button>
-        <input type="text" [(ngModel)]="userInput" (keyup.enter)="sendMessage()" [placeholder]="isRecording ? 'Listening...' : 'Type a message...'" [disabled]="isLoading">
+        <input #chatInput type="text" [(ngModel)]="userInput" (keyup.enter)="sendMessage()" [placeholder]="isRecording ? 'Listening...' : 'Type a message...'" [disabled]="isLoading">
         <button (click)="sendMessage()" [disabled]="!userInput.trim() || isLoading">Send</button>
       </div>
     </div>
@@ -211,6 +219,11 @@ interface Message {
         50% { opacity: 0.8; transform: scale(1.1); }
         100% { opacity: 1; transform: scale(1); }
     }
+    .icon-btn:hover { background: #f0f0f0; transform: scale(1.1); }
+    .admin-btn { background: #fff3cd; color: #f1c40f; border: 1px solid #ffeeba; }
+    .logout-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; opacity: 0.7; transition: 0.2s; }
+    .logout-btn:hover { opacity: 1; transform: scale(1.1); }
+    
     .mic-btn.muted {
         background: #e74c3c;
     }
@@ -238,10 +251,42 @@ interface Message {
     .model-badge.local {
         background: linear-gradient(135deg, #2ecc71, #27ae60);
     }
+    .bubble-container {
+        display: flex;
+        flex-direction: column;
+        max-width: 70%;
+    }
+    .ai .bubble {
+        max-width: 100%; /* Let container handle width */
+        margin-bottom: 2px;
+    }
+    .msg-model-badge {
+        font-size: 0.65rem;
+        color: #999;
+        margin-left: 5px;
+        font-style: italic;
+    }
+
+    /* --- CUTE SCROLLBAR --- */
+    .messages-area::-webkit-scrollbar {
+        width: 8px;
+    }
+    .messages-area::-webkit-scrollbar-track {
+        background: #f1f1f1; 
+        border-radius: 10px;
+    }
+    .messages-area::-webkit-scrollbar-thumb {
+        background: #ffb7b2; /* Pastel Pink */
+        border-radius: 10px;
+    }
+    .messages-area::-webkit-scrollbar-thumb:hover {
+        background: #ff9e99;
+    }
   `]
 })
 export class ChatComponent implements OnInit {
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
+  @ViewChild('chatInput') chatInput!: ElementRef;
 
   messages: Message[] = [];
   userInput = '';
@@ -254,10 +299,24 @@ export class ChatComponent implements OnInit {
 
   private recognition: any; // WebkitSpeechRecognition
 
-  constructor(private chatService: ChatService, private ngZone: NgZone, private router: Router) { }
+  constructor(private chatService: ChatService, private ngZone: NgZone, public authService: AuthService, private router: Router) {
+    // Note: authAuth is public to use in template? Actually let's use a getter.
+  }
+
+  get isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
+
+  logout() {
+    this.authService.logout();
+  }
 
   openAdminGuide() {
     this.router.navigate(['/admin-guide']);
+  }
+
+  openAdminDashboard() {
+    this.router.navigate(['/admin']);
   }
 
   loadingProgress = 0;
@@ -291,7 +350,21 @@ export class ChatComponent implements OnInit {
     this.initSpeechRecognition(); // Client-side STT
     if (this.messages.length > 0) {
       setTimeout(() => this.scrollToBottom(), 100);
+    } else {
+      setTimeout(() => this.sendAutoGreeting(), 500); // Small delay for effect
     }
+  }
+
+  sendAutoGreeting() {
+    const greetings = [
+      "สวัสดีค่ะพี่จ๋า! มะลิมารายงานตัวแล้วค่ะ! 🌸",
+      "งู้ยยย~ พี่จ๋ามาแล้ว! คิดถึงจังเลย~ (* >ω<)",
+      "วันนี้มีอะไรให้มะลิช่วยไหมคะ? มะลิพร้อมเสมอเลยน้า!",
+      "พี่จ๋า~ วันนี้เหนื่อยไหมคะ? พักผ่อนคุยกับมะลิก่อนนะ ❤️"
+    ];
+    const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+    // We use chatService directly to save it to history too
+    this.addMessage('ai', randomGreeting);
   }
 
   // Client-Side STT (Web Speech API)
@@ -398,7 +471,8 @@ export class ChatComponent implements OnInit {
     this.chatService.sendMessage(text, this.isMuted).subscribe({
       next: (res) => {
         this.completeProgress();
-        this.addMessage('ai', res.reply);
+        // Pass model_source to history
+        this.addMessage('ai', res.reply, res.model_source);
         if (res.model_source) {
           this.currentModel = res.model_source;
         }
@@ -406,20 +480,30 @@ export class ChatComponent implements OnInit {
           this.playAudio(res.audio_url);
         }
         this.isLoading = false;
+
+        // --- AUTO FOCUS INPUT ---
+        setTimeout(() => {
+          this.chatInput.nativeElement.focus();
+        }, 100);
       },
       error: (err) => {
         this.stopProgress();
         console.error(err);
         this.addMessage('ai', 'Something went wrong. Please try again.');
         this.isLoading = false;
+
+        // --- AUTO FOCUS INPUT ON ERROR TOO ---
+        setTimeout(() => {
+          this.chatInput.nativeElement.focus();
+        }, 100);
       }
     });
   }
 
 
 
-  addMessage(role: 'user' | 'ai', text: string) {
-    this.chatService.addMessage(role, text);
+  addMessage(role: 'user' | 'ai', text: string, model?: string) {
+    this.chatService.addMessage(role, text, model);
     setTimeout(() => this.scrollToBottom(), 100);
   }
 
@@ -478,7 +562,7 @@ export class ChatComponent implements OnInit {
   clearChat() {
     if (confirm('Are you sure you want to clear the chat history?')) {
       this.chatService.clearMessages();
-      this.messages = [];
+      // Do not reset this.messages locally, as it breaks reference to service array
       this.addMessage('ai', 'Chat history cleared! ความจำหายวับเลยค่ะ ✨');
     }
   }

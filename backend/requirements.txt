@@ -10,3 +10,8 @@ SpeechRecognition
 pydub
 python-dotenv
 openai
+sqlalchemy
+python-jose[cryptography]
+passlib[bcrypt]
+multipart
+llama-cpp-python

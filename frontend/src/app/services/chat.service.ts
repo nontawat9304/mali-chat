@@ -21,10 +21,11 @@ export class ChatService {
     private baseUrl = 'http://localhost:8000';
     // We send this URL to the backend, so it can proxy the intelligence request
     private getRemoteUrl(): string | null {
-        return localStorage.getItem('custom_api_url');
+        // Default to the user's provided Ngrok URL if not set
+        return localStorage.getItem('custom_api_url') || 'https://garterless-mystifiedly-shyla.ngrok-free.dev';
     }
 
-    private messages: { role: 'user' | 'ai', text: string }[] = [];
+    private messages: { role: 'user' | 'ai', text: string, model?: string }[] = [];
 
     constructor(private http: HttpClient) {
         // Load history from local storage on init
@@ -52,13 +53,13 @@ export class ChatService {
         return this.messages;
     }
 
-    addMessage(role: 'user' | 'ai', text: string) {
-        this.messages.push({ role, text });
+    addMessage(role: 'user' | 'ai', text: string, model?: string) {
+        this.messages.push({ role, text, model });
         this.saveHistory();
     }
 
     clearMessages() {
-        this.messages = [];
+        this.messages.length = 0; // Clear in-place to preserve reference
         this.saveHistory();
     }
 
@@ -83,10 +84,11 @@ export class ChatService {
         return this.http.post<ChatResponse>(`${this.baseUrl}/voice-chat`, formData);
     }
 
-    uploadFile(file: File): Observable<any> {
+    uploadFile(file: File, scope: 'private' | 'global' = 'private'): Observable<any> {
         // Files stored Locally
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('scope', scope);
         return this.http.post(`${this.baseUrl}/train`, formData);
     }
 
@@ -95,8 +97,8 @@ export class ChatService {
         return this.http.get<any[]>(`${this.baseUrl}/history`);
     }
 
-    trainText(title: string, text: string): Observable<any> {
-        return this.http.post(`${this.baseUrl}/train-text`, { title, text });
+    trainText(title: string, text: string, scope: 'private' | 'global' = 'private'): Observable<any> {
+        return this.http.post(`${this.baseUrl}/train-text`, { title, text, scope });
     }
 
     getPersona(): Observable<{ persona: string }> {

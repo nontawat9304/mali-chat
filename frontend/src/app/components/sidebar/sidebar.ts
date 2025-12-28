@@ -1,21 +1,30 @@
 import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterLink, RouterLinkActive],
   template: `
     <div class="sidebar">
-      <div class="logo">
-        <img src="avatar_idle.png" alt="Mali-chan" class="logo-img">
-        <h3>Mali-chan</h3>
+      <div class="top-section">
+        <div class="logo">
+            <img src="avatar_idle.png" alt="Mali-chan" class="logo-img">
+            <h3>Mali-chan</h3>
+        </div>
+        <nav>
+            <a routerLink="/chat" routerLinkActive="active" class="nav-item">💬 Chat</a>
+            <a routerLink="/training" routerLinkActive="active" class="nav-item">📚 Training</a>
+            <a routerLink="/guide" routerLinkActive="active" class="nav-item">📘 Guide</a>
+            <a *ngIf="isAdmin" routerLink="/admin" routerLinkActive="active" class="nav-item admin-link">👑 Admin</a>
+        </nav>
       </div>
-      <nav>
-        <a routerLink="/chat" routerLinkActive="active" class="nav-item">💬 Chat</a>
-        <a routerLink="/training" routerLinkActive="active" class="nav-item">📚 Training</a>
-        <a routerLink="/guide" routerLinkActive="active" class="nav-item">📘 Guide</a>
-      </nav>
+
+      <div class="bottom-section">
+        <button (click)="logout()" class="nav-item logout-btn">↪️ Logout</button>
+      </div>
     </div>
   `,
   styles: [`
@@ -26,8 +35,13 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
       color: white;
       display: flex;
       flex-direction: column;
+      justify-content: space-between; /* Push bottom-section to bottom */
       padding: 20px;
       box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    }
+    .top-section {
+      display: flex;
+      flex-direction: column;
     }
     .logo {
       display: flex;
@@ -58,11 +72,52 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
       transition: background 0.3s;
       font-size: 1.1rem;
       display: block;
+      cursor: pointer;
+      text-align: left;
+      border: none;
+      background: none;
+      width: 100%;
     }
     .nav-item:hover, .nav-item.active {
       background: #e74c3c;
       color: white;
     }
+    .admin-link {
+        color: #f1c40f;
+    }
+    .bottom-section {
+        border-top: 1px solid #34495e;
+        padding-top: 15px;
+    }
+    .logout-btn {
+        background-color: #e74c3c;
+        color: white;
+        border-radius: 8px;
+        text-align: center;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        font-weight: bold;
+        transition: all 0.2s;
+    }
+    .logout-btn:hover {
+        background-color: #c0392b;
+        color: white;
+        transform: translateY(-2px);
+    }
   `]
 })
-export class SidebarComponent { }
+export class SidebarComponent {
+  constructor(private authService: AuthService) { }
+
+  get isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
+
+  logout() {
+    this.authService.logout();
+  }
+}
+

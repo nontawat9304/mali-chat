@@ -3,10 +3,10 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
 @Component({
-    selector: 'app-admin-guide',
-    standalone: true,
-    imports: [CommonModule, RouterLink],
-    template: `
+  selector: 'app-admin-guide',
+  standalone: true,
+  imports: [CommonModule, RouterLink],
+  template: `
     <div class="guide-container">
       <div class="header">
         <h1>🛠️ Admin Manual (คู่มือผู้ดูแลระบบ)</h1>
@@ -34,10 +34,10 @@ import { RouterLink } from '@angular/router';
           <h3>⚡ สคริปต์กันหลับ (Keep Alive)</h3>
           <p>เพื่อป้องกัน Colab ตัดเน็ต ให้กด F12 ที่หน้า Colab -> Console -> วางโค้ดนี้แล้วกด Enter:</p>
           <pre><code>
-function ClickConnect(){
+function ClickConnect()&#123;
     console.log("Working to keep connection alive..."); 
     document.querySelector("colab-connect-button").click() 
-}
+&#125;
 setInterval(ClickConnect, 60000)
           </code></pre>
         </section>
@@ -47,12 +47,12 @@ setInterval(ClickConnect, 60000)
           
           <h3>แบบ Local (คอมพิวเตอร์ตัวเอง)</h3>
           <p>แก้ไขไฟล์ <code>backend/llm_engine.py</code>:</p>
-          <pre><code>model_id = "Qwen/Qwen2.5-1.5B-Instruct" # เปลี่ยนชื่อโมเดลตรงนี้</code></pre>
+          <pre ngNonBindable><code>model_id = "Qwen/Qwen2.5-1.5B-Instruct" # เปลี่ยนชื่อโมเดลตรงนี้</code></pre>
           <p><em>แนะนำให้ใช้โมเดลขนาดเล็ก ( < 3B) หากไม่มีการ์ดจอแยก</em></p>
 
           <h3>แบบ Cloud (Google Colab)</h3>
           <p>แก้ไขในไฟล์ Notebook (Cell แรก):</p>
-          <pre><code>model_id = "wannaphong/ThaiLLM-8B-v0.1" # เปลี่ยนเป็นโมเดลที่ต้องการ</code></pre>
+          <pre ngNonBindable><code>model_id = "wannaphong/ThaiLLM-8B-v0.1" # เปลี่ยนเป็นโมเดลที่ต้องการ</code></pre>
           <p><em>แนะนำ 4-bit Quantized เพื่อความเร็ว</em></p>
         </section>
 
@@ -67,13 +67,16 @@ setInterval(ClickConnect, 60000)
       </div>
     </div>
   `,
-    styles: [`
+  styles: [`
     .guide-container {
       max-width: 900px;
       margin: 0 auto;
       padding: 40px 20px;
       font-family: 'Inter', sans-serif;
-      color: #333;
+      color: #000 !important; /* Force Black */
+      background: #fff !important; /* Force White BG */
+      min-height: 80vh; /* Ensure height */
+      border: 1px solid #eee;
     }
     .header {
       display: flex;

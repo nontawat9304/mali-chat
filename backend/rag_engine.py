@@ -1,14 +1,12 @@
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import SentenceTransformerEmbeddings
 import os
+import shutil
 
 # Initialize Embeddings
-# Use simple sentence-transformers for embeddings (runs locally)
 print("Initializing Embedding Model (RAG Memory)...")
 embeddings = None
 try:
-    # Attempt to load robustly
-    from langchain_community.embeddings import SentenceTransformerEmbeddings
     embeddings = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
     print("Alignment Chip Online: RAG Memory Active ✅")
 except Exception as e:
@@ -16,122 +14,94 @@ except Exception as e:
     print("Running in Amnesia Mode (Short-term memory only) ⚠️")
     embeddings = None
 
-# Global variable to hold the vector store
-vector_store = None
-DB_PATH = "faiss_index"
+MEMORY_DIR = "memory_indices"
+GLOBAL_INDEX = "global"
 
-def get_vector_store():
-    global vector_store
-    if vector_store:
-        return vector_store
-    
-    if os.path.exists(DB_PATH):
+def get_index_path(user_id=None):
+    if user_id is None:
+        return os.path.join(MEMORY_DIR, GLOBAL_INDEX)
+    return os.path.join(MEMORY_DIR, f"user_{user_id}")
+
+def get_vector_store(user_id=None):
+    path = get_index_path(user_id)
+    if os.path.exists(path):
         try:
-            vector_store = FAISS.load_local(DB_PATH, embeddings, allow_dangerous_deserialization=True)
-            return vector_store
+            return FAISS.load_local(path, embeddings, allow_dangerous_deserialization=True)
         except Exception as e:
-            print(f"Failed to load existing index: {e}")
-            pass
-    
-    # Initialize empty if needed or handle first creation
-    # FAISS usually requires texts to initialize. 
-    # We'll initialize it lazily when first document is added or generic init
+            print(f"Failed to load index for {user_id}: {e}")
+            return None
     return None
 
-
-def add_documents(documents: list[str], metadatas: list[dict] = None):
-    global vector_store
-    if not documents:
+def add_documents(documents: list[str], metadatas: list[dict] = None, user_id: int = None):
+    """
+    Add documents to specific memory index (Global or User).
+    """
+    if not documents or embeddings is None:
         return
 
-    # SAFEGUARD: If embeddings not loaded, skip RAG
-    if embeddings is None:
-        print("⚠️ RAG Disabled: Skipping memory addition.")
-        return
-        
+    path = get_index_path(user_id)
+    vector_store = get_vector_store(user_id)
+
     if vector_store is None:
         try:
             vector_store = FAISS.from_texts(documents, embeddings, metadatas=metadatas)
         except Exception as e:
-            print(f"RAG Error (Init): {e}")
+            print(f"RAG Init Error: {e}")
             return
     else:
         try:
             vector_store.add_texts(documents, metadatas=metadatas)
         except Exception as e:
-            print(f"RAG Error (Add): {e}")
+            print(f"RAG Add Error: {e}")
             return
     
-    try:
-        vector_store.save_local(DB_PATH)
-    except Exception as e:
-        print(f"RAG Error (Save): {e}")
+    # Save
+    os.makedirs(path, exist_ok=True)
+    vector_store.save_local(path)
 
-def query_memory(query_text: str, n_results=3):
-    global vector_store
-    
+def query_memory(query_text: str, n_results=3, user_id: int = None):
+    """
+    Query both Global and Private memory.
+    """
     if embeddings is None:
         return []
 
-    # Refresh in case it was loaded or created
-    if vector_store is None:
-        vector_store = get_vector_store()
+    results = []
     
-    if vector_store is None:
-        return []
-        
-    try:
-        results = vector_store.similarity_search(query_text, k=n_results)
-        return results
-    except Exception as e:
-        print(f"RAG Query Error: {e}")
-        return []
+    # 1. Query Global
+    global_store = get_vector_store(None)
+    if global_store:
+        try:
+            results.extend(global_store.similarity_search(query_text, k=n_results))
+        except Exception: 
+            pass
 
-def clear_memory():
-    global vector_store
-    if os.path.exists(DB_PATH):
-        import shutil
-        shutil.rmtree(DB_PATH, ignore_errors=True)
-    vector_store = None
+    # 2. Query Private (if User)
+    if user_id:
+        user_store = get_vector_store(user_id)
+        if user_store:
+            try:
+                results.extend(user_store.similarity_search(query_text, k=n_results))
+            except Exception:
+                pass
+    
+    # Deduplicate (by content potentially) and maybe re-rank?
+    # For now, simplistic combination: just take them all.
+    # Optionally limit to n_results * 2
+    return results[:n_results*2] # Return broad context
+
+def clear_memory(user_id=None):
+    path = get_index_path(user_id)
+    if os.path.exists(path):
+        shutil.rmtree(path, ignore_errors=True)
 
 def rebuild_index(data_store_path: str):
-    """
-    Rebuilds the FAISS index from scratch using all files in data_store_path.
-    1. Clear existing memory.
-    2. Read all files.
-    3. Re-add documenst.
-    """
-    global vector_store
-    
-    if embeddings is None:
-        print("⚠️ RAG Disabled: Skipping rebuild.")
-        return
+    # This legacy rebuild function was for the single index.
+    # We might need to deprecate or update it to scan the new separated folders.
+    # For now, let's keep it simple: It clears GLOBAL memory.
+    print("⚠️ Rebuild Index called - Clearing GLOBAL memory only.")
+    clear_memory(None)
+    # Re-implmentation logic would need to know which file belongs to whom.
+    # We will defer this logic to the new `train_text_internal` flow.
+    pass
 
-    print("🧹 Clearing memory for rebuild...")
-    clear_memory()
-    
-    if not os.path.exists(data_store_path):
-        print("⚠️ No data store found, index cleared.")
-        return
-
-    documents = []
-    metadatas = []
-
-    print("📂 Scanning data store...")
-    for filename in os.listdir(data_store_path):
-        file_path = os.path.join(data_store_path, filename)
-        if os.path.isfile(file_path):
-             try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    text = f.read()
-                    documents.append(text)
-                    metadatas.append({"source": filename})
-             except Exception as e:
-                 print(f"❌ Failed to read {filename}: {e}")
-    
-    if documents:
-        print(f"🧠 Re-learning {len(documents)} items...")
-        add_documents(documents, metadatas=metadatas)
-        print("✅ Rebuild complete.")
-    else:
-        print("⚠️ No documents to learn.")
