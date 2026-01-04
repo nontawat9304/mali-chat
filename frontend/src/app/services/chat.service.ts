@@ -18,7 +18,7 @@ export class ChatService {
     // 1. baseUrl (Localhost) -> Stores Files, History, Persona (Memory)
     // 2. llmUrl (Colab/Ngrok) -> Intelligence (Thinking)
 
-    private baseUrl = 'http://localhost:8000';
+    private baseUrl = 'http://localhost:8002';
     // We send this URL to the backend, so it can proxy the intelligence request
     private getRemoteUrl(): string | null {
         // Default to the user's provided Ngrok URL if not set
@@ -114,6 +114,15 @@ export class ChatService {
     }
 
     downloadFile(filename: string) {
-        window.location.href = `${this.baseUrl}/download/${filename}`;
+        window.location.href = `${this.baseUrl}/download/${encodeURIComponent(filename)}`;
+    }
+
+    getFileContent(filename: string): Observable<{ content: string }> {
+        // Use Query Param to avoid Path Encoding issues with Thai characters
+        return this.http.get<{ content: string }>(`${this.baseUrl}/train/content_v2?filename=${encodeURIComponent(filename)}`);
+    }
+
+    editFile(filename: string, content: string): Observable<any> {
+        return this.http.post(`${this.baseUrl}/train/edit`, { filename, content });
     }
 }

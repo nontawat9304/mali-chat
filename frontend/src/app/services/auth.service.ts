@@ -8,7 +8,7 @@ import { ChatService } from './chat.service';
     providedIn: 'root'
 })
 export class AuthService {
-    private apiUrl = 'http://localhost:8000'; // Base URL
+    private apiUrl = 'http://localhost:8002'; // Base URL
     // In a real app, use environment variables
 
     private currentUserSubject = new BehaviorSubject<any>(null);

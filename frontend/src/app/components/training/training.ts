@@ -65,26 +65,50 @@ import { AuthService } from '../../services/auth.service';
           </div>
           
           <!-- HISTORY MODE -->
-          <div *ngIf="mode === 'history'">
-              <h3>📜 Training History</h3>
-              <p class="hint">รายการข้อมูลที่น้องมะลิจำได้ (สามารถลบหรือดาวน์โหลดได้)</p>
+          <div *ngIf="mode === 'history'" class="history-section">
+              <h3>📜 Training History ({{ filteredHistory.length }} Items)</h3>
+              <p class="hint">รายการข้อมูลที่น้องมะลิจำได้ (สามารถแก้ไข ลบ หรือดาวน์โหลดได้)</p>
+              
+              <div class="card" style="margin-bottom: 20px;">
+                  <input [(ngModel)]="searchText" (input)="filterHistory()" placeholder="🔍 Search memory..." class="input-field">
+              </div>
               
               <ul class="history-list">
-                  <li *ngFor="let item of history" class="history-item">
+                  <li *ngFor="let item of paginatedHistory" class="history-item">
                       <div class="item-left">
                            <span class="history-icon" [title]="item.scope">{{ item.scope === 'global' ? '🌎' : '🔒' }}</span>
                           <div class="history-info">
                               <strong>{{ item.filename }}</strong>
-                              <small>{{ item.timestamp }}</small>
+                              <small>{{ item.timestamp | date:'short' }}</small>
                           </div>
                       </div>
                       <div class="item-actions">
-                          <button class="btn-action download" (click)="downloadFile(item.filename)" title="Download">⬇️ Load</button>
-                          <button class="btn-action delete" (click)="deleteTraining(item.filename)" title="Forget">🗑️ Forget</button>
+                          <button class="btn-action edit" (click)="openEdit(item.filename)" title="Edit">✏️</button>
+                          <button class="btn-action download" (click)="downloadFile(item.filename)" title="Download">⬇️</button>
+                          <button class="btn-action delete" (click)="deleteTraining(item.filename)" title="Forget">🗑️</button>
                       </div>
                   </li>
-                  <li *ngIf="history.length === 0" class="empty-state">No memories yet.</li>
+                  <li *ngIf="filteredHistory.length === 0" class="empty-state">No matching memories found.</li>
               </ul>
+              
+              <!-- PAGINATION -->
+              <div class="pagination" *ngIf="totalPages > 1">
+                   <button (click)="changePage(-1)" [disabled]="currentPage === 1">◀ Prev</button>
+                   <span>Page {{ currentPage }} of {{ totalPages }}</span>
+                   <button (click)="changePage(1)" [disabled]="currentPage === totalPages">Next ▶</button>
+              </div>
+          </div>
+      </div>
+      
+      <!-- EDIT MODAL -->
+      <div *ngIf="isEditing" class="modal-overlay">
+          <div class="modal">
+              <h3>✏️ Editing: {{ editFilename }}</h3>
+              <textarea [(ngModel)]="editContent" rows="15" class="textarea-field"></textarea>
+              <div class="modal-actions">
+                  <button (click)="saveEdit()" class="btn-save">💾 Save Changes</button>
+                  <button (click)="cancelEdit()" class="btn-cancel">❌ Cancel</button>
+              </div>
           </div>
       </div>
       
@@ -168,6 +192,28 @@ import { AuthService } from '../../services/auth.service';
     .btn-action.delete:hover { background: #c0392b; }
 
     .empty-state { text-align: center; color: #999; padding: 20px; }
+    
+    .btn-action.edit { background: #f39c12; color: white; }
+    .pagination {
+        display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 20px;
+    }
+    .pagination button {
+        padding: 5px 15px; background: #eee; border: none; border-radius: 5px; cursor: pointer;
+    }
+    .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    /* MODAL */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;
+    }
+    .modal {
+        background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 600px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+    .btn-cancel { background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+
   `]
 })
 export class TrainingComponent implements OnInit {
@@ -179,6 +225,17 @@ export class TrainingComponent implements OnInit {
   isUploading = false;
   uploadStatus = '';
   history: any[] = [];
+  filteredHistory: any[] = [];
+  paginatedHistory: any[] = [];
+  searchText = '';
+  currentPage = 1;
+  itemsPerPage = 10;
+  totalPages = 1;
+
+  isEditing = false;
+  editFilename = '';
+  editContent = '';
+
   mode: 'file' | 'text' | 'persona' | 'history' = 'file';
 
   constructor(private chatService: ChatService, private authService: AuthService) { }
@@ -265,7 +322,59 @@ export class TrainingComponent implements OnInit {
   loadHistory() {
     this.chatService.getHistory().subscribe(data => {
       this.history = data.reverse();
+      this.filterHistory();
     });
+  }
+
+  filterHistory() {
+    if (!this.searchText) {
+      this.filteredHistory = this.history;
+    } else {
+      const lower = this.searchText.toLowerCase();
+      this.filteredHistory = this.history.filter(h => h.filename.toLowerCase().includes(lower));
+    }
+    this.totalPages = Math.ceil(this.filteredHistory.length / this.itemsPerPage);
+    this.currentPage = 1;
+    this.updatePagination();
+  }
+
+  updatePagination() {
+    const start = (this.currentPage - 1) * this.itemsPerPage;
+    this.paginatedHistory = this.filteredHistory.slice(start, start + this.itemsPerPage);
+  }
+
+  changePage(delta: number) {
+    this.currentPage += delta;
+    this.updatePagination();
+  }
+
+  openEdit(filename: string) {
+    this.chatService.getFileContent(filename).subscribe({
+      next: (res) => {
+        this.editFilename = filename;
+        this.editContent = res.content;
+        this.isEditing = true;
+      },
+      error: () => alert('Failed to load file content.')
+    });
+  }
+
+  saveEdit() {
+    if (!this.editContent) return;
+    this.chatService.editFile(this.editFilename, this.editContent).subscribe({
+      next: () => {
+        this.isEditing = false;
+        alert('File updated successfully!');
+        this.loadHistory();
+      },
+      error: () => alert('Failed to save changes.')
+    });
+  }
+
+  cancelEdit() {
+    this.isEditing = false;
+    this.editFilename = '';
+    this.editContent = '';
   }
 
   loadPersona() {

@@ -277,14 +277,32 @@ interface Message {
     }
     .messages-area::-webkit-scrollbar-thumb {
         background: #ffb7b2; /* Pastel Pink */
-        border-radius: 10px;
-    }
     .messages-area::-webkit-scrollbar-thumb:hover {
         background: #ff9e99;
     }
+    .status-badge {
+      font-size: 0.9rem;
+      color: #95a5a6;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .status-badge.online {
+      color: #27ae60;
+      font-weight: bold;
+    }
+    .status-badge.online::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      background: #27ae60;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 5px rgba(39, 174, 96, 0.5);
+    }
   `]
 })
-export class ChatComponent implements OnInit {
+export class ChatComponent implements OnInit, AfterViewChecked {
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
   @ViewChild('chatInput') chatInput!: ElementRef;
 
@@ -507,16 +525,20 @@ export class ChatComponent implements OnInit {
     setTimeout(() => this.scrollToBottom(), 100);
   }
 
-  scrollToBottom() {
-    if (this.scrollContainer) {
+  scrollToBottom(): void {
+    try {
       this.scrollContainer.nativeElement.scrollTop = this.scrollContainer.nativeElement.scrollHeight;
-    }
+    } catch (err) { }
+  }
+
+  ngAfterViewChecked() {
+    this.scrollToBottom();
   }
 
   playAudio(url: string) {
     if (this.isMuted) return; // Don't play if muted
 
-    const fullUrl = url.startsWith('http') ? url : `http://localhost:8000${url}`;
+    const fullUrl = url.startsWith('http') ? url : `http://localhost:8002${url}`;
     const audio = new Audio(fullUrl);
 
     this.avatarState = 'talking';
@@ -547,7 +569,7 @@ export class ChatComponent implements OnInit {
   }
 
   openSettings() {
-    const currentUrl = localStorage.getItem('custom_api_url') || 'http://localhost:8000';
+    const currentUrl = localStorage.getItem('custom_api_url') || 'http://localhost:8002';
     const newUrl = prompt('🔗 Enter Backend API URL (for Google Colab):\nLeave empty to reset to Localhost.', currentUrl);
 
     if (newUrl !== null) {

@@ -71,7 +71,7 @@ import { HttpClient } from '@angular/common/http';
                 </button>
 
                 <button *ngIf="user.id !== 1" 
-                        class="btn-delete" 
+                        class="btn-action delete" 
                         (click)="deleteUser(user)">
                   🗑️
                 </button>
@@ -93,12 +93,58 @@ import { HttpClient } from '@angular/common/http';
         </div>
       </div>
 
+      </div>
+    
       <!-- GLOBAL TRAINING TAB -->
       <div *ngIf="activeTab === 'training'" class="content-panel">
           <h3>📚 Global Knowledge Base (All Users)</h3>
-          <p class="hint">ข้อมูลที่สอนในหน้านี้ User ทุกคนจะสามารถเข้าถึงและใช้งานได้ทันที</p>
           
-          <div class="card">
+          <div class="card" style="margin-bottom: 20px;">
+              <h4>Search & Filter</h4>
+              <input [(ngModel)]="searchText" (input)="filterHistory()" placeholder="🔍 Search filenames..." class="input-field">
+          </div>
+          
+          <div class="history-section">
+               <h4>Global History ({{ filteredHistory.length }} Items)</h4>
+               
+               <table class="user-table">
+                   <thead>
+                       <tr>
+                            <th>Filename</th>
+                            <th>Scope</th>
+                            <th>Date</th>
+                           <th>Actions</th>
+                       </tr>
+                   </thead>
+                   <tbody>
+                       <tr *ngFor="let item of paginatedHistory">
+                            <td>{{ item.filename }}</td>
+                            <td>
+                                <span class="badge" [class.admin]="item.scope === 'Global' || item.scope === 'global'">
+                                    {{ item.scope || 'Private' }}
+                                </span>
+                            </td>
+                            <td>{{ item.timestamp | date:'short' }}</td>
+                            <td>
+                                <div style="display: flex; gap: 5px; white-space: nowrap;">
+                                    <button class="btn-action edit" (click)="openEdit(item.filename)">✏️ Edit</button>
+                                    <button class="btn-action download" (click)="downloadFile(item.filename)">⬇️</button>
+                                    <button class="btn-action delete" (click)="deleteTraining(item.filename)">🗑️</button>
+                                </div>
+                            </td>
+                       </tr>
+                   </tbody>
+               </table>
+               
+               <!-- PAGINATION -->
+               <div class="pagination" *ngIf="totalPages > 1">
+                   <button (click)="changePage(-1)" [disabled]="currentPage === 1">◀ Prev</button>
+                   <span>Page {{ currentPage }} of {{ totalPages }}</span>
+                   <button (click)="changePage(1)" [disabled]="currentPage === totalPages">Next ▶</button>
+               </div>
+          </div>
+
+          <div class="card" style="margin-top: 30px;">
               <h4>📄 Upload Knowledge File</h4>
               <input type="file" (change)="onAdminFileSelected($event)" class="file-input">
               <p *ngIf="uploadStatus" class="status-msg">{{ uploadStatus }}</p>
@@ -111,16 +157,26 @@ import { HttpClient } from '@angular/common/http';
                <button (click)="adminTrainText()" class="btn-save" style="margin-top: 10px;">Train Global Memory</button>
           </div>
       </div>
+    
+      <!-- EDIT MODAL -->
+      <div *ngIf="isEditing" class="modal-overlay">
+          <div class="modal">
+              <h3>✏️ Editing: {{ editFilename }}</h3>
+              <textarea [(ngModel)]="editContent" rows="20" class="textarea-field"></textarea>
+              <div class="modal-actions">
+                  <button (click)="saveEdit()" class="btn-save">💾 Save Changes</button>
+                  <button (click)="cancelEdit()" class="btn-cancel">❌ Cancel</button>
+              </div>
+          </div>
+      </div>
 
       <!-- GUIDE TAB -->
       <div *ngIf="activeTab === 'guide'" class="content-panel">
         <app-admin-guide></app-admin-guide>
       </div>
 
-    </div>
   `,
   styles: [`
-    /* ... existing styles ... */
     .admin-container {
       max-width: 1000px;
       margin: 0 auto;
@@ -137,11 +193,11 @@ import { HttpClient } from '@angular/common/http';
     }
     h1 { margin: 0; color: #d35400; }
     .back-link {
-        text-decoration: none;
-        color: #666;
-        padding: 8px 15px;
-        background: #f0f0f0;
-        border-radius: 20px;
+      text-decoration: none;
+      color: #666;
+      padding: 8px 15px;
+      background: #f0f0f0;
+      border-radius: 20px;
     }
 
     .tabs {
@@ -168,7 +224,7 @@ import { HttpClient } from '@angular/common/http';
       background: white;
       padding: 25px;
       border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
       border: 1px solid #eee;
     }
 
@@ -210,28 +266,41 @@ import { HttpClient } from '@angular/common/http';
       margin-right: 5px;
     }
     .btn-toggle.ban {
-        border-color: #e74c3c;
-        color: #e74c3c;
+      border-color: #e74c3c;
+      color: #e74c3c;
     }
     .btn-toggle.ban:hover { background: #fee; }
 
     .btn-role {
-        border-color: #3498db;
-        color: #2980b9;
-        font-size: 0.8rem;
+      border-color: #3498db;
+      color: #2980b9;
+      font-size: 0.8rem;
     }
     .btn-role.promote {
-        color: #27ae60;
-        border-color: #2ecc71;
+      color: #27ae60;
+      border-color: #2ecc71;
     }
     .btn-role:hover { background: #eaf2f8; }
     
+    .btn-action { margin-right: 5px; padding: 5px 8px; border: none; border-radius: 4px; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; min-width: 32px; }
+    .btn-action.edit { background: #f39c12; }
+    .btn-action.download { background: #3498db; }
+    .btn-action.delete { background: #e74c3c; } 
+    .btn-action.delete:hover { background: #c0392b; }
+    
+    /* Specific Red Background for Delete Button as requested */
     .btn-delete {
       border: none;
-      background: none;
+      background: #e74c3c; /* Red Background */
+      color: white; /* White Text */
       cursor: pointer;
       font-size: 1.2rem;
       margin-left: 10px;
+      padding: 5px 10px;
+      border-radius: 5px;
+    }
+    .btn-delete:hover {
+      background: #c0392b;
     }
 
     /* Persona Editor & Training */
@@ -242,21 +311,21 @@ import { HttpClient } from '@angular/common/http';
       border-radius: 8px;
       font-size: 1rem;
       font-family: monospace;
-      color: #000 !important; /* Force Black Text */
-      background: #f8f9fa !important; /* Ensure Light Grey Bg */
+      color: #000!important; /* Force Black Text */
+      background: #f8f9fa!important; /* Ensure Light Grey Bg */
       margin-bottom: 10px;
       box-sizing: border-box;
     }
     .input-field {
-        width: 100%;
-        padding: 10px;
-        border: 2px solid #000; /* High Contrast Border */
-        border-radius: 8px;
-        color: #000 !important; /* Force Black Text */
-        background: #f8f9fa !important; /* Ensure Light Grey Bg */
-        margin-bottom: 10px;
-        font-size: 1rem;
-        box-sizing: border-box;
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #000; /* High Contrast Border */
+      border-radius: 8px;
+      color: #000!important; /* Force Black Text */
+      background: #f8f9fa!important; /* Ensure Light Grey Bg */
+      margin-bottom: 10px;
+      font-size: 1rem;
+      box-sizing: border-box;
     }
     .hint { color: #888; font-size: 0.9rem; margin-top: 5px; }
     .btn-save {
@@ -271,16 +340,36 @@ import { HttpClient } from '@angular/common/http';
     .btn-save:disabled { opacity: 0.7; }
     
     .card {
-        border: 1px solid #eee;
-        padding: 15px;
-        border-radius: 8px;
-        background: #fafafa;
+      border: 1px solid #eee;
+      padding: 15px;
+      border-radius: 8px;
+      background: #fafafa;
     }
     .status-msg {
-        color: #27ae60;
-        font-weight: bold;
-        margin-top: 10px;
+      color: #27ae60;
+      font-weight: bold;
+      margin-top: 10px;
     }
+    
+    .pagination {
+      display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 20px;
+    }
+    .pagination button {
+      padding: 5px 15px; background: #eee; border: none; border-radius: 5px; cursor: pointer;
+    }
+    .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;
+    }
+    .modal {
+      background: white; padding: 30px; border-radius: 12px; width: 80%; max-width: 800px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+    .btn-cancel { background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
   `]
 })
 export class AdminDashboardComponent implements OnInit {
@@ -293,6 +382,19 @@ export class AdminDashboardComponent implements OnInit {
   trainText = '';
   uploadStatus = '';
 
+  // History & Pagination & Editing
+  history: any[] = [];
+  filteredHistory: any[] = [];
+  paginatedHistory: any[] = [];
+  searchText = '';
+  currentPage = 1;
+  itemsPerPage = 10;
+  totalPages = 1;
+
+  isEditing = false;
+  editFilename = '';
+  editContent = '';
+
   constructor(
     private adminService: AdminService,
     private http: HttpClient,
@@ -302,6 +404,7 @@ export class AdminDashboardComponent implements OnInit {
   ngOnInit() {
     this.loadUsers();
     this.loadPersona();
+    this.loadHistory();
   }
 
   loadUsers() {
@@ -326,7 +429,7 @@ export class AdminDashboardComponent implements OnInit {
     this.adminService.updateUserStatus(user.id, { role: newRole }).subscribe({
       next: () => {
         user.role = newRole;
-        alert(`User is now ${newRole}!`);
+        alert(`User is now ${newRole} !`);
       },
       error: (err) => {
         console.error(err);
@@ -344,14 +447,14 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   loadPersona() {
-    this.http.get<{ persona: string }>('http://localhost:8000/persona').subscribe(res => {
+    this.http.get<{ persona: string }>('http://localhost:8002/persona').subscribe(res => {
       this.personaText = res.persona;
     });
   }
 
   savePersona() {
     this.saving = true;
-    this.http.post('http://localhost:8000/persona', { persona_text: this.personaText }).subscribe({
+    this.http.post('http://localhost:8002/persona', { persona_text: this.personaText }).subscribe({
       next: () => {
         this.saving = false;
         alert('Persona updated globally!');
@@ -366,7 +469,7 @@ export class AdminDashboardComponent implements OnInit {
       this.uploadStatus = `Uploading ${file.name} to Global Memory...`;
       this.chatService.uploadFile(file, 'global').subscribe({
         next: (res) => this.uploadStatus = `Success: ${res.filename} added to Global Memory!`,
-        error: (err) => this.uploadStatus = `Error: ${err.message}`
+        error: (err) => this.uploadStatus = `Error: ${err.message} `
       });
     }
   }
@@ -378,8 +481,81 @@ export class AdminDashboardComponent implements OnInit {
         alert('Global Memory Updated!');
         this.trainTitle = '';
         this.trainText = '';
+        this.loadHistory();
       },
       error: (err) => alert('Error training global memory')
     });
+  }
+
+  // --- HISTORY & EDIT LOGIC ---
+  loadHistory() {
+    this.chatService.getHistory().subscribe(data => {
+      // Show ALL history for Admin (Global + Private)
+      this.history = data.reverse();
+      this.filterHistory();
+    });
+  }
+
+  filterHistory() {
+    if (!this.searchText) {
+      this.filteredHistory = this.history;
+    } else {
+      const lower = this.searchText.toLowerCase();
+      this.filteredHistory = this.history.filter(h => h.filename.toLowerCase().includes(lower));
+    }
+    this.totalPages = Math.ceil(this.filteredHistory.length / this.itemsPerPage);
+    this.currentPage = 1;
+    this.updatePagination();
+  }
+
+  updatePagination() {
+    const start = (this.currentPage - 1) * this.itemsPerPage;
+    this.paginatedHistory = this.filteredHistory.slice(start, start + this.itemsPerPage);
+  }
+
+  changePage(delta: number) {
+    this.currentPage += delta;
+    this.updatePagination();
+  }
+
+  downloadFile(filename: string) {
+    this.chatService.downloadFile(filename);
+  }
+
+  deleteTraining(filename: string) {
+    if (!confirm('Are you sure you want to delete this global knowledge?')) return;
+    this.chatService.forgetTraining(filename).subscribe(() => {
+      this.loadHistory();
+      alert('Deleted.');
+    });
+  }
+
+  openEdit(filename: string) {
+    this.chatService.getFileContent(filename).subscribe({
+      next: (res) => {
+        this.editFilename = filename;
+        this.editContent = res.content;
+        this.isEditing = true;
+      },
+      error: () => alert('Failed to load file content.')
+    });
+  }
+
+  saveEdit() {
+    if (!this.editContent) return;
+    this.chatService.editFile(this.editFilename, this.editContent).subscribe({
+      next: () => {
+        this.isEditing = false;
+        alert('File updated successfully!');
+        this.loadHistory(); // Reload to update timestamp if needed (though backend might not update timestamp logic yet)
+      },
+      error: () => alert('Failed to save changes.')
+    });
+  }
+
+  cancelEdit() {
+    this.isEditing = false;
+    this.editFilename = '';
+    this.editContent = '';
   }
 }
