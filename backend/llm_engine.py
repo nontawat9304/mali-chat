@@ -59,7 +59,10 @@ class LLMEngine:
         
         try:
             from openai import OpenAI
-            self.lm_client = OpenAI(base_url=base_url, api_key="sk-no-key-needed")
+            self.lm_client = OpenAI(
+                base_url=base_url, 
+                api_key=os.getenv("OPENAI_API_KEY", "sk-no-key-needed")
+            )
             print(f"✅ Remote AI Client Ready! ({base_url})")
         except Exception as e:
             print(f"❌ Remote Init Failed: {e}")
@@ -146,25 +149,28 @@ class LLMEngine:
         try:
             # Create messages for Chat Completion
             # Create messages for Chat Completion
-            # STRATEGY: Merge System Prompt into User Message (Universal Compatibility for GGUF)
-            # Some GGUF chat templates ignore 'system' role or hallucinate it.
+            # STRATEGY: Standard OpenAI Format (System + User)
+            # Most modern servers (LM Studio, vLLM, Ollama) handle this correctly.
             
-            final_user_content = f"{system_msg}\n\n"
-            if context_text:
-                final_user_content += f"[Context/Memory]: {context_text}\n\n"
-            
-            final_user_content += f"[User Question]: {user_message}"
-
             messages = [
-                {"role": "user", "content": final_user_content}
+                {"role": "system", "content": system_msg}
             ]
+            
+            full_user_content = user_message
+            if context_text:
+                full_user_content = f"Context:\n{context_text}\n\nQuestion:\n{user_message}"
+            
+            messages.append({"role": "user", "content": full_user_content})
 
+            # CRITICAL FIX: OpenAI API standard limits 'stop' to 4 sequences.
+            # Sending more than 4 causes Error 400 on strict servers (DeepSeek, OpenAI, etc.)
+            
             completion = self.lm_client.chat.completions.create(
-                model="tgi", # Llama-cpp-server usually ignores this, or use "model"
+                model=os.getenv("OPENAI_MODEL_NAME", "tgi"),
                 messages=messages,
                 temperature=0.7,
                 max_tokens=600,
-                stop=["<|im_end|>", "User:", "Mali:", "System:", "\nUser:", "\nMali:", "- ตอบ:", "Answer:", "<|endoftext|>"]
+                stop=["User:", "Mali:", "System:", "<|im_end|>"] # Keep only top 4 most critical
             )
             
             raw_reply = completion.choices[0].message.content.strip()
@@ -276,9 +282,20 @@ class LLMEngine:
 หน้าที่: ตอบคำถามจากบริบทที่ให้มาเท่านั้น ถ้าไม่รู้ให้ตอบว่าไม่ทราบ
 สไตล์การพูด: พูดประโยคสั้นๆ ง่ายๆ ไม่ซับซ้อน (เหมือนสาวญี่ปุ่นกำลังฝึกพูดไทย) ใช้อิโมจิน่ารักๆ เยอะๆ (* >ω<)"""
 
+        # DYNAMIC RULE: Check if history exists in context
+        greeting_rule = "- ถ้าเริ่มคุยครั้งแรก ให้ทักทายอย่างสดใส"
+        if context_text and "ประวัติการคุยล่าสุด" in context_text:
+             greeting_rule = """
+**สถานะปัจจุบัน: กำลังคุยกันอยู่ต่อเนื่อง (Conversation Active)**
+- **ห้ามพูดเปิดบทความว่า "สวัสดี" หรือ "สวัสดีค่ะ" อีกเด็ดขาด** (เพราะทักไปแล้ว)
+- ให้ตอบเนื้อหาทันที
+"""
+
         return f"""{persona_text}
 
-**กฎพิเศษ: หากข้อมูลในความจำ (Context) ขัดแย้งกัน ให้ยึดตามข้อมูลที่ระบุว่า "เลื่อน", "เปลี่ยน", หรือ "ยกเลิก" เป็นหลัก**
+**กฎพิเศษ:**
+1. **หากข้อมูลในความจำ (Context) ขัดแย้งกัน ให้ยึดตามข้อมูลที่ระบุว่า "เลื่อน", "เปลี่ยน", หรือ "ยกเลิก" เป็นหลัก**
+2. {greeting_rule}
 
 ตัวอย่างการคุย:
 Q: สวัสดี
