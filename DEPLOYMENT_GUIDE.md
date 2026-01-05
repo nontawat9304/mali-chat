@@ -24,6 +24,10 @@
     *   ดาวน์โหลด: [visualstudio.microsoft.com](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
     *   ตอนติดตั้ง ให้ติ๊กเลือก **"Desktop development with C++"**
     *   กด Install (ใช้เวลาดาวน์โหลดสักพัก ใหญ่หน่อยครับ ~6-7GB)
+2.  **FFmpeg (สำคัญมาก! สำหรับเสียง):**
+    *   ดาวน์โหลด: [gyan.dev](https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip)
+    *   แตกไฟล์ zip แล้วเข้าไปในโฟลเดอร์ `bin` จะเจอไฟล์ `ffmpeg.exe`
+    *   **ให้ copy ไฟล์ `ffmpeg.exe` มาวางไว้ในโฟลเดอร์ `backend` ของโปรเจกต์** (วางคู่กับไฟล์ main.py)
 
 ---
 
@@ -56,36 +60,46 @@ cd backend
 # 2. สร้างจำลอง Environment (เพื่อไม่ให้ตีกับโปรแกรมอื่น)
 python -m venv venv
 
-# 3. เปิดใช้งาน Environment
+# 3. เปิดใช้งาน Environment (สังเกตจะมีคำว่า (venv) สีเขียวขึ้นหน้าบรรทัด)
 # (Windows)
-venv\Scripts\activate
+.\venv\Scripts\activate
 
 # 4. ติดตั้ง Library (เลือกตามการ์ดจอที่มี)
 
-**👉 สำหรับเครื่องทั่วไป (CPU) หรือ Intel Graphics:**
+**👉 สำหรับเครื่องทั่วไป (CPU) หรือ Intel Graphics (ง่ายสุด):**
 ```bash
+# ลง Library พื้นฐาน
+pip install google-generativeai
 pip install -r requirements.txt
+
+# ลง llama-cpp-python แบบสำเร็จรูป (ไม่ต้องคอมไพล์)
+pip install llama-cpp-python --prefer-binary --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
 ```
 
 **👉 สำหรับคนใช้การ์ดจอ NVIDIA (RTX/GTX) - **แนะนำให้ทำ! เร็วขึ้น 10 เท่า****
 ต้องลง **CUDA Toolkit 12** ก่อน (โหลดที่ Nvidia) แล้วพิมพ์คำสั่งนี้:
 ```bash
+# ลง Library พื้นฐาน
+pip install google-generativeai
+pip install -r requirements.txt
+
 # ตั้งค่าให้ใช้ CUDA
 set CMAKE_ARGS=-DGGML_CUDA=on
 
 # บังคับลง llama-cpp-python ใหม่แบบเปิด GPU
-pip install llama-cpp-python --force-reinstall --no-cache-dir --upgrade
-
-# ลง Library อื่นๆ ต่อ
-pip install -r requirements.txt
+# (เราใช้ --prefer-binary เพื่อพยายามโหลดตัวสำเร็จรูปก่อน ถ้าไม่มีมันจะ Compile ให้เอง)
+pip install llama-cpp-python --force-reinstall --no-cache-dir --upgrade --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124
 ```
 
 **👉 สำหรับคนใช้ AMD (Vulkan Mode):**
 ```bash
+# ลง Library พื้นฐาน
+pip install google-generativeai
+pip install -r requirements.txt
+
 # ตั้งค่าให้ใช้ Vulkan (ต้องลง Vulkan SDK ก่อน)
 set CMAKE_ARGS=-DGGML_VULKAN=1
 pip install llama-cpp-python --force-reinstall --no-cache-dir --upgrade
-pip install -r requirements.txt
 ```
 ```
 
