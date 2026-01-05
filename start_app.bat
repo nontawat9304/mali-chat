@@ -1,5 +1,6 @@
 @echo off
 title AInote Launcher
+cd /d "%~dp0"
 echo ===================================================
 echo   🚀 Starting AInote System (Mali-chan AI)
 echo ===================================================
@@ -14,7 +15,13 @@ if not exist "backend\server.py" (
 
 :: 2. Launch Backend (New Window)
 echo [1/2] Launching Backend Server...
-start "AInote Backend (Brain)" cmd /k "cd backend && python server.py"
+if exist "backend\venv\Scripts\activate.bat" (
+    echo [INFO] Activating Virtual Environment...
+    start "AInote Backend (Brain)" cmd /k "cd backend && venv\Scripts\activate.bat && python server.py"
+) else (
+    echo [WARNING] Venv not found! Falling back to global python...
+    start "AInote Backend (Brain)" cmd /k "cd backend && python server.py"
+)
 
 :: 3. Launch Frontend (New Window)
 echo [2/2] Launching Frontend UI...

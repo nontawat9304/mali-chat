@@ -51,5 +51,12 @@
     "status": "Success (Text)",
     "user_id": null,
     "scope": "Global"
+  },
+  {
+    "filename": "นัดประชุม.txt",
+    "timestamp": "2026-01-05T21:16:04.497161",
+    "status": "Success (File)",
+    "user_id": null,
+    "scope": "Global"
   }
 ]

@@ -146,8 +146,14 @@ import { HttpClient } from '@angular/common/http';
 
           <div class="card" style="margin-top: 30px;">
               <h4>📄 Upload Knowledge File</h4>
-              <input type="file" (change)="onAdminFileSelected($event)" class="file-input">
-              <p *ngIf="uploadStatus" class="status-msg">{{ uploadStatus }}</p>
+              <!-- Improved File Upload UI -->
+              <input type="file" (change)="onAdminFileSelected($event)" #adminFileInput style="display: none">
+              <div style="display: flex; gap: 10px; align-items: center;">
+                   <button (click)="adminFileInput.click()" class="btn-save" style="background: #34495e;">
+                       📎 Choose File
+                   </button>
+                   <span *ngIf="uploadStatus" class="status-msg">{{ uploadStatus }}</span>
+              </div>
           </div>
           
           <div class="card" style="margin-top: 20px;">

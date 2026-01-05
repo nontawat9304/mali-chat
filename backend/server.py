@@ -573,14 +573,15 @@ async def train_endpoint(
 
     rag_engine.add_documents([text], metadatas=[{"source": file.filename}], user_id=target_user_id)
     
-    # Only Admin updates global history
-    if target_user_id is None:
-        entry = {
-            "filename": file.filename,
-            "timestamp": datetime.datetime.now().isoformat(),
-            "status": "Success (File)"
-        }
-        save_history(entry)
+    # Save history for BOTH Global and Private
+    entry = {
+        "filename": file.filename,
+        "timestamp": datetime.datetime.now().isoformat(),
+        "status": "Success (File)",
+        "user_id": target_user_id,
+        "scope": "Global" if scope == "global" else "Private"
+    }
+    save_history(entry)
     
     status_msg = f"Training completed ({scope})"
     return {"filename": file.filename, "status": status_msg}
