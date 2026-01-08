@@ -44,3 +44,6 @@ backend/training_data.json
 *.db
 backend/*.db
 backend/training_history.json
+backend/data_store/
+backend/faiss_index/
+backend/memory_indices/
