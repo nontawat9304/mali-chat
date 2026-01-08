@@ -12,6 +12,7 @@ import { HttpClient } from '@angular/common/http';
   standalone: true,
   imports: [CommonModule, FormsModule, AdminGuideComponent, RouterLink],
   template: `
+    <div class="admin-wrapper">
     <div class="admin-container">
       <header>
         <h1>👑 Admin Dashboard</h1>
@@ -91,8 +92,6 @@ import { HttpClient } from '@angular/common/http';
             {{ saving ? 'Saving...' : '💾 Save Persona' }}
           </button>
         </div>
-      </div>
-
       </div>
     
       <!-- GLOBAL TRAINING TAB -->
@@ -181,8 +180,16 @@ import { HttpClient } from '@angular/common/http';
         <app-admin-guide></app-admin-guide>
       </div>
 
+     </div>
+    </div>
   `,
   styles: [`
+    .admin-wrapper {
+      width: 100%;
+      height: 100vh;
+      overflow-y: auto;
+      background: #f5f7fa;
+    }
     .admin-container {
       max-width: 1000px;
       margin: 0 auto;
