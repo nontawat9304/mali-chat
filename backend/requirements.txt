@@ -16,3 +16,6 @@ passlib[bcrypt]
 multipart
 llama-cpp-python
 google-generativeai
+
+python-docx
+pypdf

@@ -117,7 +117,8 @@ export class TrainingComponent implements OnInit {
       },
       error: (err: any) => {
         this.isUploading = false;
-        this.uploadStatus = '❌ Failed.';
+        const msg = err.error?.detail || err.message || 'Unknown Error';
+        this.uploadStatus = `❌ Failed: ${msg}`;
         console.error(err);
       }
     });

@@ -54,6 +54,11 @@
                 class="btn-save width-full">
                 {{ isUploading ? 'Saving...' : '💾 Save Memory' }}
             </button>
+
+            <p *ngIf="uploadStatus" class="status-message"
+                [ngStyle]="{'color': uploadStatus.startsWith('❌') ? '#e74c3c' : '#27ae60'}">
+                {{ uploadStatus }}
+            </p>
         </div>
 
         <!-- PERSONA MODE -->

@@ -127,6 +127,47 @@ def clear_memory(user_id=None):
     if os.path.exists(path):
         shutil.rmtree(path, ignore_errors=True)
 
+
+# Optional imports for document support
+try:
+    import docx
+except ImportError:
+    docx = None
+
+try:
+    import pypdf
+except ImportError:
+    pypdf = None
+
+def read_file_content(file_path: str) -> str:
+    """Read text content from file based on extension."""
+    ext = os.path.splitext(file_path)[1].lower()
+    
+    if ext in [".txt", ".md"]:
+        with open(file_path, "r", encoding="utf-8") as f:
+            return f.read()
+            
+    if ext == ".docx":
+        if not docx: return ""
+        try:
+            doc = docx.Document(file_path)
+            return "\n".join([p.text for p in doc.paragraphs])
+        except Exception as e:
+            print(f"Error reading .docx {file_path}: {e}")
+            return ""
+
+    if ext == ".pdf":
+        if not pypdf: return ""
+        try:
+            reader = pypdf.PdfReader(file_path)
+            # Ignore none
+            return "\n".join([page.extract_text() or "" for page in reader.pages])
+        except Exception as e:
+            print(f"Error reading .pdf {file_path}: {e}")
+            return ""
+            
+    return ""
+
 def rebuild_user_index(user_id: int = None, data_store_root: str = r"c:\Project\AInote\backend\data_store"):
     """
     Completely rebuilds the index for a specific user (or Global if None).
@@ -162,21 +203,23 @@ def rebuild_user_index(user_id: int = None, data_store_root: str = r"c:\Project\
         print("   - Source directory empty/missing. Index will be empty.")
         return
 
+    allowed_exts = [".txt", ".md", ".docx", ".pdf"]
+
     for root, dirs, files in os.walk(source_dir):
         for filename in files:
-            if not filename.endswith(".txt"): continue
+            ext = os.path.splitext(filename)[1].lower()
+            if ext not in allowed_exts: continue
             
             file_path = os.path.join(root, filename)
             try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    text = f.read()
-                    if text.strip():
-                        documents.append(text)
-                        # Metadata for traceability
-                        metadatas.append({
-                           "source": filename,
-                           "scope": scope_name
-                        })
+                text = read_file_content(file_path)
+                if text.strip():
+                    documents.append(text)
+                    # Metadata for traceability
+                    metadatas.append({
+                       "source": filename,
+                       "scope": scope_name
+                    })
             except Exception as e:
                 print(f"   - Skipped {filename}: {e}")
                 
@@ -192,4 +235,5 @@ def rebuild_user_index(user_id: int = None, data_store_root: str = r"c:\Project\
             print(f"❌ REBUILD FAILED: {e}")
     else:
         print("   - No documents to index.")
+
 

@@ -557,20 +557,49 @@ async def train_endpoint(
     scope: str = Form("private"),
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    content = await file.read()
-    text = content.decode("utf-8")
-    
+    # Determine target directory
     if scope == "global":
         if current_user.role != "admin":
             raise HTTPException(status_code=403, detail="Only Admins can train Global memory")
         target_user_id = None
+        subdir = "global"
     else:
         target_user_id = current_user.id
+        subdir = f"users/{current_user.id}"
     
-    file_path = os.path.join(DATA_STORE_DIR, file.filename)
-    with open(file_path, "w", encoding="utf-8") as f:
-        f.write(text)
+    save_dir = os.path.join(DATA_STORE_DIR, subdir)
+    os.makedirs(save_dir, exist_ok=True)
+    
+    file_path = os.path.join(save_dir, file.filename)
+    
+    content = await file.read()
+    filename = file.filename.lower()
+    text = ""
+    
+    # Handle File Types
+    if filename.endswith(".txt") or filename.endswith(".md"):
+        try:
+            text = content.decode("utf-8")
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(text)
+        except UnicodeDecodeError:
+            raise HTTPException(status_code=400, detail="รองรับเฉพาะไฟล์ข้อความ (.txt, .md) แบบ UTF-8 เท่านั้น")
+            
+    elif filename.endswith(".docx") or filename.endswith(".pdf"):
+        # Save Binary
+        with open(file_path, "wb") as f:
+            f.write(content)
+        
+        # Extract Text
+        text = rag_engine.read_file_content(file_path)
+        if not text.strip():
+            os.remove(file_path) # Cleanup invalid file
+            raise HTTPException(status_code=400, detail=f"ไม่สามารถอ่านข้อความจากไฟล์ {filename} ได้ (ไฟล์อาจว่างเปล่าหรือเป็นรูปภาพ)")
+            
+    else:
+        raise HTTPException(status_code=400, detail="รองรับเฉพาะไฟล์ .txt, .md, .docx, .pdf เท่านั้น")
 
+    # Add to RAG
     rag_engine.add_documents([text], metadatas=[{"source": file.filename}], user_id=target_user_id)
     
     # Save history for BOTH Global and Private
