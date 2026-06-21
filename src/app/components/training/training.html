@@ -1,0 +1,131 @@
+<div class="training-container">
+    <header>
+        <h1>📚 Teach Mali-chan</h1>
+        <p class="subtitle">สอนน้องมะลิให้ฉลาดขึ้น (เฉพาะคุณเท่านั้น)</p>
+    </header>
+
+    <div class="tabs">
+        <button (click)="setMode('file')" [class.active]="mode === 'file'">📂 Upload File</button>
+        <button (click)="setMode('text')" [class.active]="mode === 'text'">✍️ Type Text</button>
+        <button *ngIf="isAdmin" (click)="setMode('persona')" [class.active]="mode === 'persona'">🧠 Personality
+            (Admin)</button>
+        <button (click)="setMode('history')" [class.active]="mode === 'history'">📜 History</button>
+    </div>
+
+    <div class="content-panel">
+        <!-- FILE UPLOAD MODE -->
+        <div *ngIf="mode === 'file'">
+            <h3>📄 Upload Knowledge File</h3>
+            <p class="hint">เลือกไฟล์เอกสาร (.txt, .pdf, .docx, .md) เพื่อให้น้องมะลิจดจำ</p>
+
+            <!-- SCOPE SELECTOR REMOVED (Training is Private only) -->
+
+            <div class="form-group" style="text-align: center;">
+                <input type="file" (change)="onFileSelected($event)" #fileInput style="display: none;">
+
+                <button (click)="fileInput.click()" class="btn-save" style="background: #34495e; margin-bottom: 10px;">
+                    📎 Choose File
+                </button>
+            </div>
+
+            <div *ngIf="selectedFile" class="preview-box">
+                ✅ Selected: {{ selectedFile.name }}
+            </div>
+
+            <button *ngIf="selectedFile" (click)="uploadFile()" [disabled]="isUploading" class="btn-save width-full">
+                {{ isUploading ? '⏳ Uploading...' : '🚀 Confirm Upload' }}
+            </button>
+
+            <div *ngIf="uploadStatus" class="upload-result-box" [class.success]="!uploadStatus.startsWith('❌')" [class.error]="uploadStatus.startsWith('❌')">
+                {{ uploadStatus }}
+            </div>
+        </div>
+
+        <!-- TEXT INPUT MODE -->
+        <div *ngIf="mode === 'text'">
+            <h3>📝 Write Knowledge</h3>
+            <p class="hint">พิมพ์สอนน้องมะลิโดยตรง (เช่น ข้อมูลส่วนตัว, กฎระเบียบ)</p>
+
+            <input type="text" [(ngModel)]="textTitle" placeholder="Topic / Title (e.g. My Bio)" class="input-field">
+            <textarea [(ngModel)]="textContent" placeholder="Content to be memorized..." rows="8"
+                class="textarea-field"></textarea>
+
+            <button (click)="submitText()" [disabled]="!textTitle || !textContent || isUploading"
+                class="btn-save width-full">
+                {{ isUploading ? 'Saving...' : '💾 Save Memory' }}
+            </button>
+
+            <p *ngIf="uploadStatus" class="status-message"
+                [ngStyle]="{'color': uploadStatus.startsWith('❌') ? '#e74c3c' : '#27ae60'}">
+                {{ uploadStatus }}
+            </p>
+        </div>
+
+        <!-- PERSONA MODE -->
+        <div *ngIf="mode === 'persona' && isAdmin">
+            <h3>🎭 Custom Personality (Admin Only)</h3>
+            <p class="hint">กำหนดนิสัยและวิธีการพูดของน้องมะลิ</p>
+            <textarea [(ngModel)]="personaText" placeholder="Example: You are a cute assistant..." rows="12"
+                class="textarea-field"></textarea>
+            <button (click)="savePersona()" [disabled]="!personaText || isUploading" class="btn-save width-full">
+                {{ isUploading ? 'Updating...' : '💾 Update Persona' }}
+            </button>
+        </div>
+
+        <!-- HISTORY MODE -->
+        <div *ngIf="mode === 'history'" class="history-section">
+            <h3>📜 Training History ({{ filteredHistory.length }} Items)</h3>
+            <p class="hint">รายการข้อมูลที่น้องมะลิจำได้ (สามารถแก้ไข ลบ หรือดาวน์โหลดได้)</p>
+
+            <div class="card" style="margin-bottom: 20px;">
+                <input [(ngModel)]="searchText" (input)="filterHistory()" placeholder="🔍 Search memory..."
+                    class="input-field">
+            </div>
+
+            <ul class="history-list">
+                <li *ngFor="let item of paginatedHistory" class="history-item">
+                    <div class="item-left">
+                        <span class="history-icon" [title]="item.scope">{{ item.scope === 'Global' || item.scope === 'global' ? '🌎' : '🔒' }}</span>
+                        <div class="history-info">
+                            <strong>{{ item.filename }}</strong>
+                            <small>{{ item.timestamp | date:'short' }}</small>
+                            <span class="storage-badge" [class.deep]="item.deep_read" [title]="item.deep_read ? 'Gemini File API — AI เห็นทั้งไฟล์' : 'RAG Memory — ค้นหาเป็น chunks'">
+                                {{ item.deep_read ? '🧠 Deep Read' : '📦 RAG' }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn-action edit" (click)="openEdit(item.filename)" title="Edit">✏️</button>
+                        <button class="btn-action download" (click)="downloadFile(item.filename)"
+                            title="Download">⬇️</button>
+                        <button class="btn-action delete" (click)="deleteTraining(item.filename)"
+                            title="Forget">🗑️</button>
+                    </div>
+                </li>
+                <li *ngIf="filteredHistory.length === 0" class="empty-state">No matching memories found.</li>
+            </ul>
+
+            <!-- PAGINATION -->
+            <div class="pagination" *ngIf="totalPages > 1">
+                <button (click)="changePage(-1)" [disabled]="currentPage === 1">◀ Prev</button>
+                <span>Page {{ currentPage }} of {{ totalPages }}</span>
+                <button (click)="changePage(1)" [disabled]="currentPage === totalPages">Next ▶</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT MODAL -->
+    <div *ngIf="isEditing" class="modal-overlay">
+        <div class="modal">
+            <h3>✏️ Editing: {{ editFilename }}</h3>
+            <textarea [(ngModel)]="editContent" rows="15" class="textarea-field"></textarea>
+            <div class="modal-actions">
+                <button (click)="saveEdit()" class="btn-save">💾 Save Changes</button>
+                <button (click)="cancelEdit()" class="btn-cancel">❌ Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- REMOVED OLD HISTORY SECTION BELOW -->
+
+</div>

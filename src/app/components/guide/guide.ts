@@ -1,0 +1,88 @@
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { AuthService } from '../../services/auth.service';
+
+@Component({
+  selector: 'app-guide',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div class="guide-container">
+      <h2>📘 คู่มือการใช้งาน</h2>
+      
+      <!-- ... (Skip unchanged parts) ... -->
+      <div class="guide-section">
+        <h3>💬 วิธีการพูดคุย</h3>
+        <p>1. พิมพ์ข้อความในช่องด้านล่าง แล้วกด Enter หรือคลิก <span class="btn-icon">➤</span></p>
+        <p>2. หรือกดปุ่ม <span class="btn-icon">🎤</span> เพื่อพูดคุยด้วยเสียง (Voice Recognition)</p>
+        <p>3. สังเกตป้ายมุมซ้ายล่าง: <span class="badge cloud">Cloud Brain</span> คือโหมดความเร็วสูง (Colab), <span class="badge local">Local Brain</span> คือโหมดประหยัด (ใช้ CPU เครื่อง)</p>
+      </div>
+
+      <div class="guide-section">
+        <h3>🚀 วิธีเปิดโหมดความเร็วสูง (Cloud Brain)</h3>
+        <p>เพื่อให้มะลิฉลาดและตอบไวปานสายฟ้าแลบ:</p>
+        <p>1. เปิดไฟล์ <strong>Google Colab</strong> ที่ได้รับแจก</p>
+        <p>2. กดรันทีละกล่องจนครบ 3 กล่อง</p>
+        <p>3. ก๊อปปี้ลิ้งก์ <strong>Ngrok</strong> มาใส่ในโปรแกรม</p>
+        <p>4. หากเชื่อมต่อสำเร็จ ป้ายจะเปลี่ยนเป็นสีฟ้าทันที!</p>
+      </div>
+
+      <div class="guide-section">
+        <h3>🎓 วิธีการสอนน้องมะลิ (Training)</h3>
+        <p>คุณสามารถสอนให้มะลิฉลาดขึ้นและรู้เรื่องที่คุณอยากให้รู้ได้ 2 วิธี:</p>
+        
+        <div class="sub-section">
+            <h4>📂 วิธีที่ 1: อัปโหลดไฟล์</h4>
+            <p>1. ไปที่เมนู <strong>Training</strong></p>
+            <p>2. เลือกแท็บ "Upload File"</p>
+            <p>3. เลือกไฟล์เอกสาร (.txt, .md, .csv) จากเครื่องของคุณ</p>
+            <p>4. กดยืนยันและรอจนขี้นข้อความสำเร็จ</p>
+        </div>
+
+        <div class="sub-section">
+            <h4>✍️ วิธีที่ 2: พิมพ์สอนโดยตรง</h4>
+            <p>1. ไปที่เมนู <strong>Training</strong></p>
+            <p>2. เลือกแท็บ "Type Text"</p>
+            <p>3. ตั้งชื่อหัวข้อ (เช่น "ประวัติของฉัน")</p>
+            <p>4. พิมพ์หรือวางเนื้อหาที่ต้องการสอนลงในช่องใหญ่</p>
+            <p>5. กดปุ่มบันทึก</p>
+        </div>
+      </div>
+
+      <!-- PERSONALITY SECTION: HIDDEN FOR NON-ADMIN -->
+      <div class="guide-section" *ngIf="isAdmin">
+        <h3>🧠 การปรับแต่งนิสัย (Personality)</h3>
+        <p>เปลี่ยนนิสัยและวิธีพูดของน้องมะลิได้ดั่งใจ</p>
+        <p>1. ไปที่เมนู <strong>Training</strong> และดูส่วน Personality</p>
+        <p>2. พิมพ์บรรยายลักษณะที่ชอบ (เช่น "ขี้อ้อน, ชอบพูดคะขา, เรียกผู้ใช้ว่าพี่จ๋า")</p>
+        <p>3. กดปุ่ม Update Persona (คุยครั้งต่อไปน้องจะเปลี่ยนทันที!)</p>
+      </div>
+
+       <div class="guide-section warning">
+        <h3>⚠️ ข้อควรระวัง</h3>
+        <p>- ข้อมูลการสอนทั้งหมดจะถูกเก็บไว้ในเครื่องของคุณ (Local) ปลอดภัย 100%</p>
+        <p>- หาก Colab หลุดบ่อย ให้ลองกดรันใหม่แล้วเปลี่ยนลิ้งก์ Ngrok</p>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .guide-container { padding: 30px; max-width: 800px; margin: 0 auto; overflow-y: auto; height: 100vh; }
+    h2 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; margin-bottom: 30px; }
+    h3 { color: #2980b9; margin-top: 0; }
+    h4 { color: #16a085; margin-bottom: 5px; }
+    .guide-section {
+      background: white; padding: 25px; border-radius: 12px; margin-bottom: 25px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    .sub-section { margin-left: 20px; margin-top: 15px; border-left: 3px solid #eee; padding-left: 15px; }
+    .btn-icon { background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 0.9rem; }
+    .warning { border-left: 5px solid #f1c40f; }
+  `]
+})
+export class GuideComponent {
+  constructor(public authService: AuthService) { }
+
+  get isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
+}
